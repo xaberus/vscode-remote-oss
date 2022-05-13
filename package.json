@@ -1,0 +1,233 @@
+{
+    "name": "remote-oss",
+    "displayName": "Remote (OSS)",
+    "description": "Remote (OSS)",
+    "version": "0.0.1",
+    "publisher": "xaberus",
+    "repository": {
+        "url": "https://github.com/xaberus/remote-oss"
+    },
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.67.0"
+    },
+    "extensionKind": [
+        "ui"
+    ],
+    "enabledApiProposals": [
+        "resolvers",
+        "terminalDataWriteEvent",
+        "contribViewsRemote"
+    ],
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onResolveRemoteAuthority:remote-oss",
+        "onCommand:remote-oss.openEmptyWindowInCurrentWindow",
+        "onCommand:remote-oss.openFolderInCurrentWindow",
+        "onCommand:remote-oss.showLog",
+        "onView:remoteHosts"
+    ],
+    "main": "./out/extension.js",
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": true
+        }
+    },
+    "contributes": {
+        "views": {
+            "remote": [
+                {
+                    "id": "remoteHosts",
+                    "name": "Remote Hosts",
+                    "group": "targets@1",
+                    "remoteName": "remote-oss"
+                }
+            ]
+        },
+        "viewsWelcome": [
+            {
+                "view": "remoteHosts",
+                "when": "remote-oss:noHosts",
+                "contents": "No remote hosts have been configured yet."
+            }
+        ],
+        "commands": [
+            {
+                "command": "remote-oss.configureHosts",
+                "title": "Configure",
+                "icon": "$(gear)"
+            },
+            {
+                "command": "remote-oss.openEmptyWindowInCurrentWindow",
+                "title": "Connect Current Window to Host...",
+                "category": "Remote-OSS",
+                "icon": "$(empty-window)"
+            },
+            {
+                "command": "remote-oss.openFolderInCurrentWindow",
+                "title": "Connect Current Window to Folder on Host...",
+                "category": "Remote-OSS",
+                "icon": "$(empty-window)"
+            },
+            {
+                "command": "remote-oss.showLog",
+                "title": "Show Log",
+                "category": "Remote-OSS"
+            }
+        ],
+        "resourceLabelFormatters": [
+            {
+                "scheme": "vscode-remote",
+                "authority": "remote-oss+*",
+                "formatting": {
+                    "label": "${path}",
+                    "separator": "/",
+                    "tildify": true,
+                    "workspaceSuffix": "remote"
+                }
+            }
+        ],
+        "menus": {
+            "statusBar/remoteIndicator": [
+                {
+                    "command": "remote-oss.openEmptyWindowInCurrentWindow",
+                    "when": "true",
+                    "group": "remote_20_oss_1general@1"
+                },
+                {
+                    "command": "remote-oss.showLog",
+                    "when": "true",
+                    "group": "remote_20_oss_1general@4"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "remote-oss.configureHosts",
+                    "when": "view == remoteHosts",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "remote-oss.openEmptyWindowInCurrentWindow",
+                    "when": "viewItem == remote-oss.host",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "remote-oss.openFolderInCurrentWindow",
+                    "when": "viewItem == remote-oss.folder",
+                    "group": "inline@1"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "Remote - OSS",
+            "properties": {
+                "remote.OSS.hosts": {
+                    "description": "Specify a list of hosts here that you want to connect to remotely.",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "type",
+                            "name"
+                        ],
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "description": "Specify the type of connection this is.",
+                                "enum": [
+                                    "manual"
+                                ],
+                                "enumDescriptions": [
+                                    "A manual connection that you will establish yourself. In particular, you are responsible for starting the correct server version and creating a tunnel from the specified port to the remote port the server is listening to."
+                                ]
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "Specifies the label to be used for this connection."
+                            },
+                            "folders": {
+                                "type": "array",
+                                "description": "Specifies a short cut list of workspace folders on the remote host.",
+                                "items": {
+                                    "oneOf": [
+                                        {
+                                            "type": "string",
+                                            "description": "Specifies the path on the remote host."
+                                        },
+                                        {
+                                            "type": "object",
+                                            "required": [
+                                                "name",
+                                                "path"
+                                            ],
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string",
+                                                    "description": "Specifies a label to use instead of the full path."
+                                                },
+                                                "path": {
+                                                    "type": "string",
+                                                    "description": "Specifies the path on the remote host."
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "oneOf": [
+                            {
+                                "required": [
+                                    "host",
+                                    "port"
+                                ],
+                                "properties": {
+                                    "type": {
+                                        "const": "manual"
+                                    },
+                                    "host": {
+                                        "type": "string",
+                                        "description": "Specifies the host name or IP address of the host to connect to."
+                                    },
+                                    "port": {
+                                        "type": "number",
+                                        "description": "Specifies the port to connect to.",
+                                        "minimum": 1025,
+                                        "maximum": 65535
+                                    }
+                                }
+                            }
+                        ],
+                        "unevaluatedProperties": false
+                    }
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "package": "vsce package"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.2.0",
+        "@types/mocha": "^9.1.1",
+        "@types/node": "14.x",
+        "@types/vscode": "^1.67.0",
+        "@typescript-eslint/eslint-plugin": "^5.21.0",
+        "@typescript-eslint/parser": "^5.21.0",
+        "eslint": "^8.14.0",
+        "mocha": "^9.2.2",
+        "ts-loader": "^9.3.0",
+        "ts-node": "^10.7.0",
+        "typescript": "^4.6.4",
+        "vsce": "^2.9.1"
+    }
+}
