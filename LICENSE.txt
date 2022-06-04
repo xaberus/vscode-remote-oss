@@ -1,6 +1,7 @@
 MIT License
 
 Remote OSS - Remote development for OSS builds
+Copyright (c) Microsoft Corporation. All rights reserved.
 Copyright (c) Pavel Sterin
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
