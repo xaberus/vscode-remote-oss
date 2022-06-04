@@ -1,6 +1,6 @@
 # remote-oss README
 
-This extensions allows you to use the existing remote extension host (REH) machinery of
+This extension allows you to use the existing remote extension host (REH) machinery of
 VSCode for OSS builds. The machinery is the same as in the proprietary remote development
 extension like `ms-vscode-remote.remote-ssh`. That is, it uses the same RPC protocol as VSCode
 as it is part of the OSS release of VSCode.
@@ -14,7 +14,7 @@ a REH instance on the remote host. The remaining part is some glue code to direc
 to a local port that has been forwarded in some way to the remote part on which the REH
 instance is listening. (And some fancy GUI of course...)
 
-In this first version delegate the REH startup and port forwarding to the user to keep the scope
+In this first version we delegate the REH startup and port forwarding to the user to keep the scope
 simple. Therefore, if you want to use this extension then you are responsible for starting up the
 **correct** version of the REH instance and creating the necessary tunnel to forward the traffic
 (using for example SSH, see the examples below.) For now, this extension just allows you to connect
