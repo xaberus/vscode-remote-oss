@@ -79,13 +79,25 @@ ssh rem -L 8000:localhost:11111
 Then, on the remote machine download the REH build and put it in some folder:
 
 ```bash
-export COMMIT=c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5
-export REH_DIR=~/.vscode-server-oss/${COMMIT}
-export CONNECTION_TOKEN=...
-export REMOTE_PORT=11111
-mkdir -p ${REH_DIR}
-cd ${REH_DIR}
-curl https:/... | tar -xvf-
+export VSCODIUM_DIR=~/.vscodium-server
+export VSCODIUM_VERSION="1.68.0"
+export PACKAGE="vscodium-reh-linux-x64-${VSCODIUM_VERSION}.tar.gz"
+
+mkdir -p "${VSCODIUM_DIR}"
+pushd "${VSCODIUM_DIR}"
+wget "https://github.com/VSCodium/vscodium/releases/download/${VSCODIUM_VERSION}/${PACKAGE}"
+export COMMIT=$(tar -xf "${VSCODIUM_DIR}/${PACKAGE}" ./product.json -O | jq ".commit" -r)
+export BIN_DIR="${VSCODIUM_DIR}/bin/${COMMIT}"
+
+mkdir -p "${BIN_DIR}"
+pushd "${BIN_DIR}"
+tar -xf "${VSCODIUM_DIR}/${PACKAGE}"
+popd
+
+ln -sf "${BIN_DIR}" "${VSCODIUM_DIR}/bin/current"
+rm "${VSCODIUM_DIR}/${PACKAGE}"
+
+popd
 ```
 
 (The above folder structure is inspired by how the remote-ssh extension but is not strictly necessary.)
@@ -93,7 +105,10 @@ curl https:/... | tar -xvf-
 Start the REH instance:
 
 ```bash
-~/.vscode-server-oss/bin/${COMMIT}/bin/code-server-oss \
+export CONNECTION_TOKEN=<secret>
+export REMOTE_PORT=11111
+
+~/.vscodium-server/bin/current/bin/codium-server \
     --host localhost \
     --port ${REMOTE_PORT} \
     --telemetry-level off \
