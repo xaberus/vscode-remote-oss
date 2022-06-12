@@ -5,7 +5,7 @@
     "version": "0.0.1",
     "publisher": "xaberus",
     "repository": {
-        "url": "https://github.com/xaberus/remote-oss"
+        "url": "https://github.com/xaberus/vscode-remote-oss"
     },
     "license": "MIT",
     "engines": {
