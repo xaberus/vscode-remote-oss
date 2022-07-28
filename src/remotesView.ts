@@ -46,14 +46,18 @@ export class FolderItem extends TreeItem {
 class PlainHostItem extends HostBase {
     readonly host: string;
     readonly port: number;
+    readonly no_token?: boolean;
+    readonly connection_token?: string;
 
-    constructor(label: string, host: string, port: number) {
+    constructor(label: string, host: string, port: number, no_token?: boolean, connection_token?: string) {
         super(label);
         this.contextValue = 'remote-oss.host';
         this.iconPath = new ThemeIcon("device-desktop");
         this.description = `${host}:${port}`;
         this.host = host;
         this.port = port;
+        this.no_token = no_token;
+        this.connection_token = connection_token;
     }
 }
 
@@ -112,7 +116,7 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
             const hosts: HostConfig[] = value;
             for (const host of hosts) {
                 if (host.type === HostKind.Manual) {
-                    const hostItem = new PlainHostItem(host.name, host.host, host.port);
+                    const hostItem = new PlainHostItem(host.name, host.host, host.port, host.no_token, host.connection_token);
                     manual.addHost(hostItem);
                     numberOfHosts += 1;
                     if (host.folders) {
@@ -229,6 +233,12 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
         }
         const host = hosts[0];
         if (host instanceof PlainHostItem) {
+            if (host.no_token) {
+                return new ResolvedAuthority(host.host, host.port, undefined);
+            }
+            else if (host.connection_token) {
+                return new ResolvedAuthority(host.host, host.port, host.connection_token);
+            }
             const token = await this.pickToken();
             if (!token) {
                 throw new Error("no token specified");
