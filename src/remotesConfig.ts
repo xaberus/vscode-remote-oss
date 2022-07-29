@@ -18,6 +18,7 @@ export interface ManualHostConfig extends HostConfigBase {
     type: HostKind.Manual;
     host: string;
     port: number;
+    connectionToken?: string | boolean;
 }
 
 export type HostConfig = ManualHostConfig;

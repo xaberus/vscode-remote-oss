@@ -46,14 +46,16 @@ export class FolderItem extends TreeItem {
 class PlainHostItem extends HostBase {
     readonly host: string;
     readonly port: number;
+    readonly connectionToken: string | boolean;
 
-    constructor(label: string, host: string, port: number) {
+    constructor(label: string, host: string, port: number, connectionToken: string | boolean) {
         super(label);
         this.contextValue = 'remote-oss.host';
         this.iconPath = new ThemeIcon("device-desktop");
         this.description = `${host}:${port}`;
         this.host = host;
         this.port = port;
+        this.connectionToken = connectionToken;
     }
 }
 
@@ -112,7 +114,12 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
             const hosts: HostConfig[] = value;
             for (const host of hosts) {
                 if (host.type === HostKind.Manual) {
-                    const hostItem = new PlainHostItem(host.name, host.host, host.port);
+                    var connectionToken = host.connectionToken;
+                    if (!connectionToken && typeof connectionToken !== "boolean") {
+                        connectionToken = true;
+                    }
+
+                    const hostItem = new PlainHostItem(host.name, host.host, host.port, connectionToken);
                     manual.addHost(hostItem);
                     numberOfHosts += 1;
                     if (host.folders) {
@@ -229,11 +236,19 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
         }
         const host = hosts[0];
         if (host instanceof PlainHostItem) {
-            const token = await this.pickToken();
-            if (!token) {
-                throw new Error("no token specified");
+            if (typeof host.connectionToken === "boolean") {
+                if (!host.connectionToken) {
+                    return new ResolvedAuthority(host.host, host.port);
+                } else {
+                    const token = await this.pickToken();
+                    if (!token) {
+                        throw new Error("no token specified");
+                    }
+                    return new ResolvedAuthority(host.host, host.port, token);
+                }
+            } else {
+                return new ResolvedAuthority(host.host, host.port, host.connectionToken);
             }
-            return new ResolvedAuthority(host.host, host.port, token);
         }
         throw RemoteAuthorityResolverError.NotAvailable(`Host ${label} is not configured.`, true);
     }

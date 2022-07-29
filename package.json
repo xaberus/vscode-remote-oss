@@ -2,7 +2,7 @@
     "name": "remote-oss",
     "displayName": "Remote (OSS)",
     "description": "Remote (OSS)",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "publisher": "xaberus",
     "repository": {
         "url": "https://github.com/xaberus/vscode-remote-oss"
@@ -198,6 +198,20 @@
                                         "description": "Specifies the port to connect to.",
                                         "minimum": 1025,
                                         "maximum": 65535
+                                    },
+                                    "connectionToken": {
+                                        "oneOf": [
+                                            {
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "boolean"
+                                            }
+                                        ],
+                                        "default": {
+                                            "const": true
+                                        },
+                                        "description": "Assume that the server was started wit this connection token. Use false to disable connection tokens. Use true to ask for a token before connecting."
                                     }
                                 }
                             }

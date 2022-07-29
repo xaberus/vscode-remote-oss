@@ -155,6 +155,15 @@ Have fun!
 
 ...
 
+### 0.0.2
+
+Added a new config option (`connectionToken`) to host configurations.
+Set it to a string to provide a fixed connection token. Alternatively,
+set it to boolean value `false` to completely disable connection tokens.
+The default value is `true`. Be ware that by saving the token in the
+config JSON you might compromise the little security might have initially
+provided.
+
 ### 0.0.1
 
 Initial release of Remote OSS
