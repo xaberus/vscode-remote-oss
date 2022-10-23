@@ -5,21 +5,21 @@ VSCode for OSS builds. The machinery is the same as in the proprietary remote de
 extension like `ms-vscode-remote.remote-ssh`. That is, it uses the same RPC protocol as VSCode
 as it is part of the OSS release of VSCode.
 
-As of writing this, there is right now no other way to utilize this remote development code
-without violating the license, hence the need for this extension.
 
 The remote development pack provided by Microsoft includes several domain specific extensions
-(ssh, docker, WSL2, etc.). These extensions contains shell scripts that are used to start up
+(ssh, docker, WSL2, etc.). These extensions contain shell scripts that are used to start up
 a REH instance on the remote host. The remaining part is some glue code to direct the local editor
-to a local port that has been forwarded in some way to the remote part on which the REH
+to a local port that has been forwarded in some way to the remote port or socket on which the REH
 instance is listening. (And some fancy GUI of course...)
 
-In this first version we delegate the REH startup and port forwarding to the user to keep the scope
-simple. Therefore, if you want to use this extension then you are responsible for starting up the
-**correct** version of the REH instance and creating the necessary tunnel to forward the traffic
-(using for example SSH, see the examples below.) For now, this extension just allows you to connect
-to a local port. (This is actually something the original remote extensions do not allow you to
-do for some reason.)
+This extension delegates the REH startup and port forwarding completely to the user to keep the
+scope simple. Therefore, if you want to use this extension then you are responsible for starting
+up the **correct** version of the REH instance and creating the necessary tunnel to forward the
+traffic (using for example SSH, see the examples below.) For now, this extension just allows you
+to connect to a local port. (This is actually something the original remote extensions do not
+allow you to do for some reason.)
+
+**Note**: If you want an alternative that is limited to SSH tunnels, you can try the [open-remote-ssh](https://open-vsx.org/extension/jeanp413/open-remote-ssh) extension instead.
 
 ## Requirements
 
@@ -27,22 +27,27 @@ VSCode defines the connection to remote hosts though special URIs of the shape:
 ```
     vscode-remote://<resolver>+<label><path>
 ```
-In our case `<resolver>` is `remote-oss`, label is the name of the host defined in the settings and `<path>` is the absolute path on the remote host.
+In our case `<resolver>` is `remote-oss`, label is the name of the host defined in the settings
+and `<path>` is the absolute path on the remote host.
 
-In order to hook into this mechanism this extension needs to enable several API proposals. Normally these are blocked so you have to explicitly enable them in your `argv.json`
+In order to hook into this mechanism, this extension needs to enable several API proposals.
+Normally these are blocked so you have to explicitly enable them in your `argv.json`. This
+file is usually located in `~/.vscode-oss/argv.json` on Linux and you can  open by it by
+running the `Preferences: Configure Runtime Arguments` command.
+
 
 ```json
 {
     ...
     "enable-proposed-api": [
         ...,
-        "xaberus.remote-oss",
-    ]
+        "xaberus.remote-oss"
+    ],
     ...
 }
 ```
 
-With this out of the way we can register our own "remote authority resolver" that will resolve
+With this out of the way, we can register our own "remote authority resolver" that will resolve
 `vscode-remote://` URIs to whatever is configured in the corresponding settings section.
 
 ## Extension Settings
@@ -76,27 +81,29 @@ Log in to the remote port and simultaneously setup port forwarding:
 ssh rem -L 8000:localhost:11111
 ```
 
-Then, on the remote machine download the REH build and put it in some folder:
+Then, on the remote machine download the REH build and put it in some folder. You can use the following update script:
 
 ```bash
-export VSCODIUM_DIR=~/.vscodium-server
-export VSCODIUM_VERSION="1.68.0"
-export PACKAGE="vscodium-reh-linux-x64-${VSCODIUM_VERSION}.tar.gz"
+#!/usr/bin/env bash
+set -uexo pipefail
+
+VSCODIUM_DIR="${HOME}/.vscodium-server"
+RELEASE_URL="$(curl -Ls -o /dev/null -w '%{url_effective}' 'https://github.com/VSCodium/vscodium/releases/latest')"
+RELEASE="${RELEASE_URL##*/}"
+PACKAGE="vscodium-reh-linux-x64-${RELEASE}.tar.gz"
+DOWNLOAD_URL="https://github.com/VSCodium/vscodium/releases/download/${RELEASE}/${PACKAGE}"
 
 mkdir -p "${VSCODIUM_DIR}"
 pushd "${VSCODIUM_DIR}"
-wget "https://github.com/VSCodium/vscodium/releases/download/${VSCODIUM_VERSION}/${PACKAGE}"
-export COMMIT=$(tar -xf "${VSCODIUM_DIR}/${PACKAGE}" ./product.json -O | jq ".commit" -r)
-export BIN_DIR="${VSCODIUM_DIR}/bin/${COMMIT}"
-
+curl -Ls -o "${VSCODIUM_DIR}/${PACKAGE}" "${DOWNLOAD_URL}"
+COMMIT_ID=$(tar -xf "${VSCODIUM_DIR}/${PACKAGE}" ./product.json -O | jq ".commit" -r)
+BIN_DIR="${VSCODIUM_DIR}/bin/${COMMIT_ID}"
 mkdir -p "${BIN_DIR}"
 pushd "${BIN_DIR}"
 tar -xf "${VSCODIUM_DIR}/${PACKAGE}"
 popd
-
-ln -sf "${BIN_DIR}" "${VSCODIUM_DIR}/bin/current"
+ln -sfT "${BIN_DIR}" "${VSCODIUM_DIR}/bin/current"
 rm "${VSCODIUM_DIR}/${PACKAGE}"
-
 popd
 ```
 
@@ -116,14 +123,14 @@ export REMOTE_PORT=11111
 ```
 
 Note, that in the above command line we specified the host to be `localhost`. This is important
-because the default setting is to listen on `0:0:0:0`. This will expose our REH instance to
+because the default setting is to listen on `0:0:0:0`. This will expose your REH instance to
 outside internet, which you definitely want to avoid. With the localhost setting only local
 processes can connect (i.e., the SSH server).
 
 The `CONNECTION_TOKEN` serves as a password that you will be asked every time you connect
 to the REH instance.
 
-You have to keep the SSH session running as long as you using the REH. Alternatively you can use
+You have to keep the SSH session running as long as you using the REH. Alternatively, you can use
 tools like tmux to create persistent sessions.
 
 Now, to connect your local editor install the extension and add the following section to your `settings.json`:
