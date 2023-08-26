@@ -39,6 +39,8 @@ export function activate(context: vscode.ExtensionContext) {
                 workspaceSuffix: label
             }
         }));
+        // Enable ports view
+        vscode.commands.executeCommand("setContext", "forwardedPortsViewEnabled", true);
         return authority;
     }
 
