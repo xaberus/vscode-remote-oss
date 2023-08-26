@@ -162,6 +162,9 @@ Have fun!
 
 ...
 
+### 0.0.3
+Enabled port view and added an example update bash script.
+
 ### 0.0.2
 
 Added a new config option (`connectionToken`) to host configurations.
