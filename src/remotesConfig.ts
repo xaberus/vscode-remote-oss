@@ -1,5 +1,6 @@
 export enum HostKind {
   Manual = "manual",
+  Script = "script",
 }
 
 export interface ExtendedHostFolder {
@@ -21,4 +22,14 @@ export interface ManualHostConfig extends HostConfigBase {
   connectionToken?: string | boolean;
 }
 
-export type HostConfig = ManualHostConfig;
+export interface ScriptHostConfig extends HostConfigBase {
+  type: HostKind.Script;
+  host: string;
+  port: number;
+  connectionToken?: string | boolean;
+  localDirectory: string;
+  listenScript: string;
+  listenScriptReady?: string;
+}
+
+export type HostConfig = ManualHostConfig | ScriptHostConfig;

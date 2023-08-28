@@ -1,10 +1,18 @@
 import * as vscode from "vscode";
 import { RemotesDataProvider, FolderItem, HostBase } from "./remotesView";
+import { RemoteResolver } from "./resolver";
 
-let outputChannel: vscode.OutputChannel;
+const getOutputChannel: () => vscode.OutputChannel = (function () {
+  let outputChannel: vscode.OutputChannel | undefined = undefined;
+  return () => {
+    if (!outputChannel)
+      outputChannel = vscode.window.createOutputChannel("Remote OSS");
+    return outputChannel;
+  };
+})();
 
 function registerExplorer(
-  context: vscode.ExtensionContext,
+  context: vscode.ExtensionContext
 ): RemotesDataProvider {
   let treeDataProvider = new RemotesDataProvider(context);
   const view = vscode.window.createTreeView("remoteHosts", {
@@ -22,21 +30,25 @@ export function activate(context: vscode.ExtensionContext) {
       if (e.affectsConfiguration("remote.OSS.hosts")) {
         await remotesProvider.readTree();
       }
-    }),
+    })
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("remote-oss.configureHosts", async () => {
       vscode.commands.executeCommand("workbench.action.openSettingsJson");
-    }),
+    })
   );
 
-  function doResolve(
+  async function doResolve(
     label: string,
-    progress: vscode.Progress<{ message?: string; increment?: number }>,
+    progress: vscode.Progress<{ message?: string; increment?: number }>
   ): Promise<vscode.ResolvedAuthority> {
-    outputChannel = vscode.window.createOutputChannel("Remote OSS");
-    const authority = remotesProvider.resolveAuthority(label, outputChannel);
+    const output = getOutputChannel();
+    const host = await remotesProvider.getHost(label);
+    const resolver = new RemoteResolver(host, progress, output);
+    await resolver.initialize();
+    const result = await resolver.resolveAuthority();
+    context.subscriptions.push(resolver);
     context.subscriptions.push(
       vscode.workspace.registerResourceLabelFormatter({
         scheme: "vscode-remote",
@@ -47,15 +59,15 @@ export function activate(context: vscode.ExtensionContext) {
           tildify: true,
           workspaceSuffix: label,
         },
-      }),
+      })
     );
     // Enable ports view
     vscode.commands.executeCommand(
       "setContext",
       "forwardedPortsViewEnabled",
-      true,
+      true
     );
-    return authority;
+    return result;
   }
 
   const authorityResolverDisposable =
@@ -72,13 +84,11 @@ export function activate(context: vscode.ExtensionContext) {
               title: `connecting to ${match[1]} ([details](command:remote-oss.showLog))`,
               cancellable: false,
             },
-            (progress) => doResolve(match[1], progress),
+            (progress) => doResolve(match[1], progress)
           );
         }
         throw vscode.RemoteAuthorityResolverError.NotAvailable("Invalid", true);
       },
-      // tunnelFactory,
-      // showCandidatePort
     });
   context.subscriptions.push(authorityResolverDisposable);
 
@@ -99,8 +109,8 @@ export function activate(context: vscode.ExtensionContext) {
             reuseWindow: true,
           });
         }
-      },
-    ),
+      }
+    )
   );
 
   context.subscriptions.push(
@@ -108,19 +118,17 @@ export function activate(context: vscode.ExtensionContext) {
       "remote-oss.openFolderInCurrentWindow",
       async (folder: FolderItem) => {
         const uri = vscode.Uri.parse(
-          `vscode-remote://remote-oss+${folder.host}${folder.path}`,
+          `vscode-remote://remote-oss+${folder.host}${folder.path}`
         );
         vscode.commands.executeCommand("vscode.openFolder", uri);
-      },
-    ),
+      }
+    )
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("remote-oss.showLog", () => {
-      if (outputChannel) {
-        outputChannel.show();
-      }
-    }),
+      getOutputChannel().show();
+    })
   );
 }
 

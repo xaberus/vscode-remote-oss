@@ -182,6 +182,7 @@
             "oneOf": [
               {
                 "required": [
+                  "type",
                   "host",
                   "port"
                 ],
@@ -212,6 +213,54 @@
                       "const": true
                     },
                     "description": "Assume that the server was started wit this connection token. Use false to disable connection tokens. Use true to ask for a token before connecting."
+                  }
+                }
+              },
+              {
+                "required": [
+                  "type",
+                  "host",
+                  "port"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "script"
+                  },
+                  "host": {
+                    "type": "string",
+                    "description": "Specifies the host name or IP address of the host to connect to."
+                  },
+                  "port": {
+                    "type": "number",
+                    "description": "Specifies the port to connect to.",
+                    "minimum": 1025,
+                    "maximum": 65535
+                  },
+                  "connectionToken": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "boolean"
+                      }
+                    ],
+                    "default": {
+                      "const": true
+                    },
+                    "description": "Assume that the server was started wit this connection token. Use false to disable connection tokens. Use true to ask for a token before connecting."
+                  },
+                  "localDirectory": {
+                    "type": "string",
+                    "description": "Local directory to run scripts in."
+                  },
+                  "listenScript": {
+                    "type": "string",
+                    "description": "Script that runs an REH on the configured host/port."
+                  },
+                  "listenScriptReady": {
+                    "type": "string",
+                    "description": "Regular expression that listenScript outputs once it is ready to receive connections. Default: \"Extension host agent listening\""
                   }
                 }
               }

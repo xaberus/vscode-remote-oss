@@ -44,28 +44,38 @@ export class FolderItem extends TreeItem {
   }
 }
 
-class PlainHostItem extends HostBase {
-  readonly host: string;
-  readonly port: number;
-  readonly connectionToken: string | boolean;
-
+export class PlainHostItem extends HostBase {
   constructor(
     label: string,
-    host: string,
-    port: number,
-    connectionToken: string | boolean,
+    public readonly host: string,
+    public readonly port: number,
+    public readonly connectionToken: string | boolean
   ) {
     super(label);
     this.contextValue = "remote-oss.host";
     this.iconPath = new ThemeIcon("device-desktop");
     this.description = `${host}:${port}`;
-    this.host = host;
-    this.port = port;
-    this.connectionToken = connectionToken;
   }
 }
 
-type Host = PlainHostItem;
+export class ScriptHostItem extends HostBase {
+  constructor(
+    label: string,
+    public readonly host: string,
+    public readonly port: number,
+    public readonly connectionToken: string | boolean,
+    public readonly localDirectory: string,
+    public readonly listenScript: string,
+    public readonly listenScriptReady: string | undefined
+  ) {
+    super(label);
+    this.contextValue = "remote-oss.host";
+    this.iconPath = new ThemeIcon("device-desktop");
+    this.description = `${host}:${port}`;
+  }
+}
+
+export type Host = PlainHostItem | ScriptHostItem;
 
 class KindItem extends TreeItem {
   hosts: Host[] = [];
@@ -128,7 +138,7 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem> {
             host.name,
             host.host,
             host.port,
-            connectionToken,
+            connectionToken
           );
           manual.addHost(hostItem);
           numberOfHosts += 1;
@@ -142,7 +152,39 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem> {
                 hostItem.addFolder(new FolderItem(folder, hostName, folder));
               } else {
                 hostItem.addFolder(
-                  new FolderItem(folder.name, hostName, folder.path),
+                  new FolderItem(folder.name, hostName, folder.path)
+                );
+              }
+            }
+          }
+        } else if (host.type === HostKind.Script) {
+          var connectionToken = host.connectionToken;
+          if (!connectionToken && typeof connectionToken !== "boolean") {
+            connectionToken = true;
+          }
+
+          const hostItem = new ScriptHostItem(
+            host.name,
+            host.host,
+            host.port,
+            connectionToken,
+            host.localDirectory,
+            host.listenScript,
+            host.listenScriptReady
+          );
+          manual.addHost(hostItem);
+          numberOfHosts += 1;
+          if (host.folders) {
+            for (const folder of host.folders) {
+              const hostName = hostItem.label;
+              if (typeof hostName !== "string") {
+                continue;
+              }
+              if (typeof folder === "string") {
+                hostItem.addFolder(new FolderItem(folder, hostName, folder));
+              } else {
+                hostItem.addFolder(
+                  new FolderItem(folder.name, hostName, folder.path)
                 );
               }
             }
@@ -164,7 +206,7 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem> {
     if (!this.remotesTree) {
       await this.readTree();
     }
-    if (element instanceof PlainHostItem) {
+    if (element instanceof HostBase) {
       return element.folders;
     }
     if (element instanceof KindItem) {
@@ -180,7 +222,7 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem> {
 
   async _getHostList(out: Host[], root: TreeItem[]) {
     for (let entry of root) {
-      if (entry instanceof PlainHostItem) {
+      if (entry instanceof PlainHostItem || entry instanceof ScriptHostItem) {
         out.push(entry);
       } else {
         await this._getHostList(out, await this.getChildren(entry));
@@ -209,7 +251,7 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem> {
 
       const result = await Promise.race([
         new Promise<readonly QuickPickItem[]>((c) =>
-          quickpick.onDidAccept(() => c(quickpick.selectedItems)),
+          quickpick.onDidAccept(() => c(quickpick.selectedItems))
         ),
         new Promise<undefined>((c) => quickpick.onDidHide(() => c(undefined))),
       ]);
@@ -226,50 +268,14 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem> {
     return;
   }
 
-  async pickToken(): Promise<string | undefined> {
-    const raw = await window.showInputBox({
-      placeHolder: "enter the connection token",
-      password: true,
-    });
-    return raw;
-  }
-
-  async resolveAuthority(
-    label: string,
-    channel: OutputChannel,
-  ): Promise<ResolvedAuthority> {
-    channel.append(`connecting to ${label}...`);
-
+  async getHost(label: string): Promise<Host> {
     const hosts = (await this.getHostList()).filter((h) => h.label === label);
     if (!hosts || hosts.length === 0) {
       throw RemoteAuthorityResolverError.NotAvailable(
         `Host ${label} is not available.`,
-        true,
+        true
       );
     }
-    const host = hosts[0];
-    if (host instanceof PlainHostItem) {
-      if (typeof host.connectionToken === "boolean") {
-        if (!host.connectionToken) {
-          return new ResolvedAuthority(host.host, host.port);
-        } else {
-          const token = await this.pickToken();
-          if (!token) {
-            throw new Error("no token specified");
-          }
-          return new ResolvedAuthority(host.host, host.port, token);
-        }
-      } else {
-        return new ResolvedAuthority(
-          host.host,
-          host.port,
-          host.connectionToken,
-        );
-      }
-    }
-    throw RemoteAuthorityResolverError.NotAvailable(
-      `Host ${label} is not configured.`,
-      true,
-    );
+    return hosts[0];
   }
 }
