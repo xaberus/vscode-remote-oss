@@ -15,6 +15,25 @@ import {
 } from "vscode";
 import { HostConfig, HostKind } from "./remotesConfig";
 
+export function encode_remote_host(host: string): string {
+    const encoded = encodeURIComponent(Buffer.from(host).toString("hex"));
+    return `remote-oss+--${encoded}`;
+}
+
+export function decode_remote_host(encoded: string): [string | undefined, boolean] {
+    var match = encoded.match(/remote-oss\+--(.*)/);
+    if (match) {
+        const decoded = Buffer.from(decodeURIComponent(match[1]), "hex").toString();
+        return [decoded, false];
+    }
+    var match = encoded.match(/remote-oss\+(.*)/);
+    if (match) {
+        const decoded = match[1];
+        return [decoded, true];
+    }
+    return [undefined, false]
+}
+
 export class HostBase extends TreeItem {
     name: string;
     folders: FolderItem[];
@@ -81,7 +100,7 @@ class KindItem extends TreeItem {
 
 type TaskTree = KindItem[] | Host[];
 
-export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
+export class RemotesDataProvider implements TreeDataProvider<TreeItem> {
     private remotesTree: TaskTree | null = null;
     private extensionContext: ExtensionContext;
     private _onDidChangeTreeData: EventEmitter<TreeItem | null> = new EventEmitter<TreeItem | null>();
@@ -188,7 +207,7 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
         return out;
     }
 
-    async pickHost(): Promise<string | undefined> {
+    async pickHostLabel(): Promise<string | undefined> {
         const quickpick = window.createQuickPick();
         quickpick.canSelectMany = false;
         quickpick.show();
@@ -208,8 +227,7 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
                 return;
             }
 
-            let host = result[0].label;
-            return `remote-oss+${host}`;
+            return encode_remote_host(result[0].label);
         } finally {
             quickpick.dispose();
         }
@@ -227,14 +245,30 @@ export class RemotesDataProvider implements TreeDataProvider<TreeItem>{
     async resolveAuthority(
         label: string,
         channel: OutputChannel,
+        legacy: boolean,
     ): Promise<ResolvedAuthority> {
-        channel.append(`connecting to ${label}...`);
+        channel.appendLine(`resolving label '${label}' (legacy=${legacy})...`);
 
-        const hosts = (await this.getHostList()).filter(h => h.label === label);
+        var predicate;
+        if (legacy) {
+            predicate = function (h: PlainHostItem) {
+                return h.label?.toString().toLowerCase() === label.toLowerCase()
+            };
+        } else {
+            predicate = function (h: PlainHostItem) {
+                return h.label === label
+            };
+        }
+
+        const hosts = (await this.getHostList()).filter(predicate);
+
         if (!hosts || hosts.length === 0) {
             throw RemoteAuthorityResolverError.NotAvailable(`Host ${label} is not available.`, true);
         }
         const host = hosts[0];
+
+        channel.appendLine(`resolved label to '${host.label}'...`);
+
         if (host instanceof PlainHostItem) {
             if (typeof host.connectionToken === "boolean") {
                 if (!host.connectionToken) {
