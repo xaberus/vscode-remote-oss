@@ -162,6 +162,9 @@ Have fun!
 
 ...
 
+### 0.0.4
+Properly encode the remote label so it survives a round-trip through the URI parser.
+
 ### 0.0.3
 Enabled port view and added an example update bash script.
 

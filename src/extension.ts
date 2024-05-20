@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { RemotesDataProvider, FolderItem, HostBase } from './remotesView';
+import { RemotesDataProvider, FolderItem, HostBase, encode_remote_host, decode_remote_host } from './remotesView';
 
 let outputChannel: vscode.OutputChannel;
 
@@ -14,7 +14,7 @@ function registerExplorer(context: vscode.ExtensionContext): RemotesDataProvider
     return treeDataProvider;
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     let remotesProvider = registerExplorer(context);
     context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration('remote.OSS.hosts')) {
@@ -26,9 +26,24 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.executeCommand("workbench.action.openSettingsJson");
     }));
 
-    function doResolve(label: string, progress: vscode.Progress<{ message?: string; increment?: number }>): Promise<vscode.ResolvedAuthority> {
-        outputChannel = vscode.window.createOutputChannel('Remote OSS');
-        const authority = remotesProvider.resolveAuthority(label, outputChannel);
+    outputChannel = vscode.window.createOutputChannel('Remote OSS');
+
+    async function doResolve(
+        label: string,
+        progress: vscode.Progress<{ message?: string; increment?: number }>,
+        legacy: boolean,
+    ): Promise<vscode.ResolvedAuthority> {
+        if (legacy) {
+            await vscode.window.showWarningMessage(
+                `The the format of remote host links in the Remote OSS extension changed.
+                This change will make links in the recently visited list invalid
+                in future version of this extension. Clear the recent list and/or
+                reopen the workspace.`,
+                "OK",
+            );
+
+        }
+        const authority = remotesProvider.resolveAuthority(label, outputChannel, legacy);
         context.subscriptions.push(vscode.workspace.registerResourceLabelFormatter({
             scheme: "vscode-remote",
             authority: "remote-oss+*",
@@ -36,7 +51,8 @@ export function activate(context: vscode.ExtensionContext) {
                 label: "${path}",
                 separator: "/",
                 tildify: true,
-                workspaceSuffix: label
+                normalizeDriveLetter: false,
+                workspaceSuffix: label,
             }
         }));
         // Enable ports view
@@ -49,13 +65,14 @@ export function activate(context: vscode.ExtensionContext) {
             return vscode.Uri.file(uri.path);
         },
         resolve(authority: string): Thenable<vscode.ResolvedAuthority> {
-            const match = authority.match(/remote-oss\+(.*)/);
-            if (match) {
+            outputChannel.appendLine(`resolving authority: ${authority}`)
+            const [host, legacy] = decode_remote_host(authority);
+            if (host) {
                 return vscode.window.withProgress({
                     location: vscode.ProgressLocation.Notification,
-                    title: `connecting to ${match[1]} ([details](command:remote-oss.showLog))`,
+                    title: `connecting to ${host} ([details](command:remote-oss.showLog))`,
                     cancellable: false
-                }, (progress) => doResolve(match[1], progress));
+                }, (progress) => doResolve(host, progress, legacy));
             }
             throw vscode.RemoteAuthorityResolverError.NotAvailable('Invalid', true);
         },
@@ -69,9 +86,9 @@ export function activate(context: vscode.ExtensionContext) {
         async (host?: HostBase) => {
             var label: string | undefined = undefined;
             if (!host) {
-                label = await remotesProvider.pickHost();
+                label = await remotesProvider.pickHostLabel();
             } else {
-                label = `remote-oss+${host.name}`;
+                label = encode_remote_host(host.name);
             }
             if (label) {
                 vscode.window.showInformationMessage('resolving remote');
@@ -83,9 +100,12 @@ export function activate(context: vscode.ExtensionContext) {
         }));
 
     context.subscriptions.push(vscode.commands.registerCommand('remote-oss.openFolderInCurrentWindow',
-        async (folder: FolderItem) => {
-            const uri = vscode.Uri.parse(`vscode-remote://remote-oss+${folder.host}${folder.path}`);
-            vscode.commands.executeCommand("vscode.openFolder", uri);
+        async (folder?: FolderItem) => {
+            if (folder) {
+                const encoded = encode_remote_host(folder.host)
+                const uri = vscode.Uri.parse(`vscode-remote://${encoded}${folder.path}`);
+                vscode.commands.executeCommand("vscode.openFolder", uri);
+            }
         }));
 
     context.subscriptions.push(vscode.commands.registerCommand('remote-oss.showLog', () => {
