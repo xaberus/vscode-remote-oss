@@ -19,7 +19,7 @@ traffic (using for example SSH, see the examples below.) For now, this extension
 to connect to a local port. (This is actually something the original remote extensions do not
 allow you to do for some reason.)
 
-**Note**: If you want an alternative that is limited to SSH tunnels, you can try the [open-remote-ssh](https://open-vsx.org/extension/jeanp413/open-remote-ssh) extension instead.
+**Note**: If you want an alternative that is limited to either SSH tunnels or WSL, you can try the extensions [open-remote-ssh](https://open-vsx.org/extension/jeanp413/open-remote-ssh) or [open-remote-wsl](https://open-vsx.org/extension/jeanp413/open-remote-wsl) instead.
 
 ## Requirements
 
