@@ -109,26 +109,37 @@ popd
 
 (The above folder structure is inspired by how the remote-ssh extension but is not strictly necessary.)
 
+Create a connection token and save it in a file. This is a password, so it must be kept secret, otherwise other
+users of the same remote machine can connect to your Remote Host Extension and perform arbitrary actions in
+your name! For example, to create a random 24-character connection token and save it, you can do:
+
+```bash
+tr -dc A-Za-z0-9 </dev/urandom | head -c 24 > .vscodium-server/connection-token
+chmod 600 .vscodium-server/connection-token  # prevent access by others!
+```
+
 Start the REH instance:
 
 ```bash
-export CONNECTION_TOKEN=<secret>
 export REMOTE_PORT=11111
 
 ~/.vscodium-server/bin/current/bin/codium-server \
     --host localhost \
     --port ${REMOTE_PORT} \
     --telemetry-level off \
-    --connection-token ${CONNECTION_TOKEN}
+    --connection-token-file ~/.vscodium-server/connection-token
 ```
 
 Note, that in the above command line we specified the host to be `localhost`. This is important
 because the default setting is to listen on `0:0:0:0`. This will expose your REH instance to
 outside internet, which you definitely want to avoid. With the localhost setting only local
-processes can connect (i.e., the SSH server).
-
-The `CONNECTION_TOKEN` serves as a password that you will be asked every time you connect
-to the REH instance.
+processes can connect (i.e., the SSH server). Also, if others than you can access your server,
+you should not use the option `--connection-token (....)` because all other users can see the
+full command you execute and thus you would reveal your connection token. Use 
+`--connection-token-file` like shown above. To avoid the use of a dedicated file, you can 
+make use of bash's [process substitution](https://tldp.org/LDP/abs/html/process-sub.html)
+feature, e.g. (`--connection-token-file <(printenv CONNECTION_TOKEN)`) when you set 
+`export CONNECTION_TOKEN="<secret>"`) earlier in your script.
 
 You have to keep the SSH session running as long as you using the REH. Alternatively, you can use
 tools like tmux to create persistent sessions.
@@ -142,6 +153,7 @@ Now, to connect your local editor install the extension and add the following se
             "name": "local",
             "host": "127.0.0.1",
             "port": 8000,
+            "connectionToken": "(copy from previous step)",
             "folders": [
                 {
                     "name": "project",
@@ -151,6 +163,8 @@ Now, to connect your local editor install the extension and add the following se
         }
     ]
 ```
+
+To make VSCodium ask for the connection token at each connection attempt, use `"connectionToken": true` above instead of providing the token.
 
 Now you should be able to trigger a connection from the "Remote Explorer" tree view. You should see a tree that allows you to connect either to the REH instance directly or to a folder you specified in the config.
 
