@@ -1,5 +1,8 @@
 # Change Log
 
+## [v0.0.5]
+- improve documentation for secure access (thx. mlell)
+
 ## [v0.0.4]
 
 - bugix: properly encode the remote label so

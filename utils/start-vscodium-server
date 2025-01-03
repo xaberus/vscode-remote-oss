@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -e
+
+export VSCODIUM_DIR="${HOME}/.vscodium-server"
+export VSC_SOCKET="${VSCODIUM_DIR}/socket"
+export VSC_SERVER="${VSCODIUM_DIR}/bin/current/bin/codium-server"
+export VSC_TOKEN="${VSCODIUM_DIR}/connection-token"
+
+rm -f "${VSC_SOCKET}"
+
+$VSC_SERVER \
+  --socket-path "${VSC_SOCKET}" \
+  --telemetry-level off \
+  --connection-token-file "${VSC_TOKEN}"
+  $@

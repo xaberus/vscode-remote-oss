@@ -2,7 +2,7 @@
     "name": "remote-oss",
     "displayName": "Remote (OSS)",
     "description": "Remote (OSS)",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "publisher": "xaberus",
     "repository": {
         "url": "https://github.com/xaberus/vscode-remote-oss"

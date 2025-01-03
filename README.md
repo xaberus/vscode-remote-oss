@@ -78,7 +78,10 @@ commit: c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5
 Log in to the remote port and simultaneously setup port forwarding:
 
 ```bash
-ssh rem -L 8000:localhost:11111
+REMOTE_HOST="rem"
+LOCAL_PORT=8000
+REMOTE_PORT="11111"
+ssh -L ${LOCAL_PORT}:localhost:${REMOTE_PORT} ${REMOTE_HOST}
 ```
 
 Then, on the remote machine download the REH build and put it in some folder. You can use the following update script:
@@ -114,14 +117,14 @@ users of the same remote machine can connect to your Remote Host Extension and p
 your name! For example, to create a random 24-character connection token and save it, you can do:
 
 ```bash
-tr -dc A-Za-z0-9 </dev/urandom | head -c 24 > .vscodium-server/connection-token
-chmod 600 .vscodium-server/connection-token  # prevent access by others!
+tr -dc A-Za-z0-9 </dev/urandom | head -c 24 > ~/.vscodium-server/connection-token
+chmod 600 ~/.vscodium-server/connection-token  # prevent access by others!
 ```
 
 Start the REH instance:
 
 ```bash
-export REMOTE_PORT=11111
+REMOTE_PORT=11111
 
 ~/.vscodium-server/bin/current/bin/codium-server \
     --host localhost \
@@ -135,14 +138,23 @@ because the default setting is to listen on `0:0:0:0`. This will expose your REH
 outside internet, which you definitely want to avoid. With the localhost setting only local
 processes can connect (i.e., the SSH server). Also, if others than you can access your server,
 you should not use the option `--connection-token (....)` because all other users can see the
-full command you execute and thus you would reveal your connection token. Use 
-`--connection-token-file` like shown above. To avoid the use of a dedicated file, you can 
+full command you execute and thus you would reveal your connection token. Use
+`--connection-token-file` like shown above. To avoid the use of a dedicated file, you can
 make use of bash's [process substitution](https://tldp.org/LDP/abs/html/process-sub.html)
-feature, e.g. (`--connection-token-file <(printenv CONNECTION_TOKEN)`) when you set 
+feature, e.g. (`--connection-token-file <(printenv CONNECTION_TOKEN)`) when you set
 `export CONNECTION_TOKEN="<secret>"`) earlier in your script.
 
-You have to keep the SSH session running as long as you using the REH. Alternatively, you can use
-tools like tmux to create persistent sessions.
+If you are using SSH as the tunnel service you can further improve the security by using unix
+domain sockets. To do that, replace the host and port options above by `--socket-path ~/.vscodium-server/socket`.
+Then use SSH to forward this remote unix socket to a local port on your machine:
+```bash
+ssh -A -L ${LOCAL_PORT}:~/.vscodium-server/socket ${REMOTE_HOST}
+```
+(Note, the socket has to exist (i.e. the reh is strted up) before a connection to the local
+port is attempted.)
+
+You have to keep the tunnel service (i.e., SSH) session running as long as you are using the REH.
+Alternatively, you can use tools like tmux to create persistent sessions.
 
 Now, to connect your local editor install the extension and add the following section to your `settings.json`:
 
@@ -176,6 +188,9 @@ Have fun!
 
 ...
 
+### 0.0.5
+Make the access examples discussed here more secure by using access tokens and unix domain sockets.
+
 ### 0.0.4
 Properly encode the remote label so it survives a round-trip through the URI parser.
 
@@ -187,8 +202,8 @@ Enabled port view and added an example update bash script.
 Added a new config option (`connectionToken`) to host configurations.
 Set it to a string to provide a fixed connection token. Alternatively,
 set it to boolean value `false` to completely disable connection tokens.
-The default value is `true`. Be ware that by saving the token in the
-config JSON you might compromise the little security might have initially
+The default value is `true`. Be aware that by saving the token in the
+config JSON you might compromise the little security it might have initially
 provided.
 
 ### 0.0.1
