@@ -110,7 +110,7 @@ rm "${VSCODIUM_DIR}/${PACKAGE}"
 popd
 ```
 
-(The above folder structure is inspired by how the remote-ssh extension but is not strictly necessary.)
+(The above folder structure is inspired by the remote-ssh extension but is not strictly necessary.)
 
 Create a connection token and save it in a file. This is a password, so it must be kept secret, otherwise other
 users of the same remote machine can connect to your Remote Host Extension and perform arbitrary actions in
@@ -150,8 +150,8 @@ Then use SSH to forward this remote unix socket to a local port on your machine:
 ```bash
 ssh -A -L ${LOCAL_PORT}:~/.vscodium-server/socket ${REMOTE_HOST}
 ```
-(Note, the socket has to exist (i.e. the reh is strted up) before a connection to the local
-port is attempted.)
+**Note**: The socket has to exist (i.e. the reh must be started up) before a connection to the local
+port is attempted by VSCodium.
 
 You have to keep the tunnel service (i.e., SSH) session running as long as you are using the REH.
 Alternatively, you can use tools like tmux to create persistent sessions.
