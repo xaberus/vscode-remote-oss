@@ -145,13 +145,14 @@ feature, e.g. (`--connection-token-file <(printenv CONNECTION_TOKEN)`) when you 
 `export CONNECTION_TOKEN="<secret>"`) earlier in your script.
 
 If you are using SSH as the tunnel service you can further improve the security by using unix
-domain sockets. To do that, replace the host and port options above by `--socket-path ~/.vscodium-server/socket`.
+domain sockets. To do that, replace the host and port options above by `--socket-path /<remote home-dir>/.vscodium-server/socket`.
 Then use SSH to forward this remote unix socket to a local port on your machine:
 ```bash
-ssh -A -L ${LOCAL_PORT}:~/.vscodium-server/socket ${REMOTE_HOST}
+ssh -A -L ${LOCAL_PORT}:/<remote home-dir>/.vscodium-server/socket ${REMOTE_HOST}
 ```
 **Note**: The socket has to exist (i.e. the reh must be started up) before a connection to the local
-port is attempted by VSCodium.
+port is attempted by VSCodium. Also note that you have to specify the full path as ssh will not
+shell expand `~` to your remote home directory.
 
 You have to keep the tunnel service (i.e., SSH) session running as long as you are using the REH.
 Alternatively, you can use tools like tmux to create persistent sessions.
